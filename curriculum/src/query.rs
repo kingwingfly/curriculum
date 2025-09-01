@@ -2,16 +2,15 @@ use std::{borrow::Borrow, collections::HashSet};
 
 use paste::paste;
 
-use crate::{course::Course, period::CoursePeriod, time_provider::TimeProvider};
+use crate::{course::Course, time_provider::TimeProvider};
 
-pub trait Query<C, PS, M>
+pub trait Query<C, M>
 where
-    for<'a> &'a PS: IntoIterator<Item = &'a CoursePeriod>,
-    C: Borrow<Course<PS>>,
+    C: Borrow<Course>,
 {
     fn filter<F>(self, f: F) -> impl Iterator<Item = C>
     where
-        F: Fn(&Course<PS>) -> bool;
+        F: Fn(&Course) -> bool;
 
     fn in_progress<TPB, TP>(self, time_provider: TPB) -> impl Iterator<Item = C>
     where
@@ -36,15 +35,14 @@ where
     }
 }
 
-impl<T, C, PS> Query<C, PS, ()> for T
+impl<T, C> Query<C, ()> for T
 where
     T: IntoIterator<Item = C>,
-    for<'a> &'a PS: IntoIterator<Item = &'a CoursePeriod>,
-    C: Borrow<Course<PS>>,
+    C: Borrow<Course>,
 {
     fn filter<F>(self, f: F) -> impl Iterator<Item = C>
     where
-        F: Fn(&Course<PS>) -> bool,
+        F: Fn(&Course) -> bool,
     {
         Iterator::filter(self.into_iter(), move |c| f(c.borrow()))
     }
@@ -53,15 +51,14 @@ where
 macro_rules! impl_query {
     ($($i: literal),+ $(,)?) => {
         paste! {
-            impl<$([<T $i>]),+, C, PS> Query<C, PS, ((),)> for ($([<T $i>]),+,)
+            impl<$([<T $i>]),+, C> Query<C, ((),)> for ($([<T $i>]),+,)
             where
-                for<'a> &'a PS: IntoIterator<Item = &'a CoursePeriod>,
-                C: Borrow<Course<PS>>,
-                $([<T $i>]: IntoIterator<Item = C>),+
+                $([<T $i>]: IntoIterator<Item = C>),+,
+                C: Borrow<Course>,
             {
                 fn filter<F>(self, f: F) -> impl Iterator<Item = C>
                 where
-                    F: Fn(&Course<PS>) -> bool,
+                    F: Fn(&Course) -> bool,
                 {
                     Iterator::filter([].into_iter()$(.chain(self.$i))*, move |c| f(c.borrow()))
                 }
@@ -96,7 +93,7 @@ mod tests {
                 Course::builder()
                     .name("Chinese")
                     .tutors([])
-                    .periods([
+                    .periods(vec![
                         CoursePeriod::builder()
                             .start(NaiveDate::MIN.and_hms_opt(8, 0, 0).unwrap())
                             .duration(TimeDelta::hours(4))
@@ -116,7 +113,7 @@ mod tests {
                 Course::builder()
                     .name("English")
                     .tutors([])
-                    .periods([
+                    .periods(vec![
                         CoursePeriod::builder()
                             .start(NaiveDate::MIN.and_hms_opt(14, 0, 0).unwrap())
                             .duration(TimeDelta::hours(4))
@@ -137,7 +134,7 @@ mod tests {
             [Course::builder()
                 .name("Math")
                 .tutors([])
-                .periods([
+                .periods(vec![
                     CoursePeriod::builder()
                         .start(
                             NaiveDate::MIN
