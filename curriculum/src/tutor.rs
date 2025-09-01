@@ -8,9 +8,9 @@ pub struct Tutor {
 #[bon]
 impl Tutor {
     #[builder]
-    pub fn new(name: impl AsRef<str>) -> Self {
+    pub fn new(name: &str) -> Self {
         Self {
-            name: name.as_ref().to_owned(),
+            name: name.to_owned(),
         }
     }
 }

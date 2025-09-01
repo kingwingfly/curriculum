@@ -1,32 +1,37 @@
 use std::{borrow::Borrow, collections::HashSet};
 
 use bon::bon;
+use chrono::TimeDelta;
 use getset::Getters;
 
-use crate::{period::CoursePeriod, time_provider::TimeProvider, tutor::Tutor};
+use crate::{period::Period, time_provider::TimeProvider, tutor::Tutor};
 
 #[derive(Debug, PartialEq, Eq, Getters)]
 pub struct Course {
     #[getset(get = "pub")]
     name: String,
     #[getset(get = "pub")]
+    place: Option<String>,
+    #[getset(get = "pub")]
     tutors: HashSet<Tutor>,
     #[getset(get = "pub")]
-    periods: Vec<CoursePeriod>,
+    periods: HashSet<Period>,
 }
 
 #[bon]
 impl Course {
     #[builder]
     pub fn new(
-        name: impl AsRef<str>,
-        tutors: impl Into<HashSet<Tutor>>,
-        periods: Vec<CoursePeriod>,
+        name: &str,
+        place: Option<&str>,
+        tutors: impl IntoIterator<Item = Tutor>,
+        periods: impl IntoIterator<Item = Period>,
     ) -> Self {
         Self {
-            name: name.as_ref().to_owned(),
-            tutors: tutors.into(),
-            periods,
+            name: name.to_owned(),
+            place: place.map(|s| s.to_owned()),
+            tutors: tutors.into_iter().collect(),
+            periods: periods.into_iter().collect(),
         }
     }
 }
@@ -38,7 +43,21 @@ impl Course {
         TP: TimeProvider,
     {
         let now = time_provider.borrow().now();
-        self.periods.iter().any(|p| p.contains(now))
+        self.periods
+            .iter()
+            .any(|p| p.start() <= &now && &now <= p.end())
+    }
+
+    pub fn is_upcoming<TPB, TP>(&self, time_provider: TPB, delta: TimeDelta) -> bool
+    where
+        TPB: Borrow<TP>,
+        TP: TimeProvider,
+    {
+        let start = time_provider.borrow().now();
+        let end = start + delta;
+        self.periods
+            .iter()
+            .any(|p| &start <= p.start() && p.start() <= &end)
     }
 }
 
@@ -56,54 +75,48 @@ mod test {
         let course = Course::builder()
             .name("English")
             .tutors([])
-            .periods(vec![
-                CoursePeriod::builder()
-                    .start(NaiveDate::MIN.and_hms_opt(8, 0, 0).unwrap())
-                    .duration(TimeDelta::hours(4))
-                    .build(),
-            ])
+            .periods([Period::builder()
+                .start(NaiveDate::MIN.and_hms_opt(8, 0, 0).unwrap())
+                .duration(TimeDelta::hours(4))
+                .build()])
             .build();
         assert!(course.is_in_progress(time_provider));
 
         let course = Course::builder()
             .name("Chinese")
             .tutors([])
-            .periods(vec![
-                CoursePeriod::builder()
-                    .start(NaiveDate::MIN.and_hms_opt(14, 0, 0).unwrap())
-                    .duration(TimeDelta::hours(4))
-                    .build(),
-            ])
+            .periods([Period::builder()
+                .start(NaiveDate::MIN.and_hms_opt(14, 0, 0).unwrap())
+                .duration(TimeDelta::hours(4))
+                .build()])
             .build();
         assert!(!course.is_in_progress(time_provider));
 
         let course = Course::builder()
             .name("Math")
             .tutors([])
-            .periods(vec![
-                CoursePeriod::builder()
-                    .start(
-                        NaiveDate::MIN
-                            .checked_add_days(Days::new(1))
-                            .unwrap()
-                            .and_hms_opt(8, 0, 0)
-                            .unwrap(),
-                    )
-                    .duration(TimeDelta::hours(4))
-                    .build(),
-            ])
+            .periods([Period::builder()
+                .start(
+                    NaiveDate::MIN
+                        .checked_add_days(Days::new(1))
+                        .unwrap()
+                        .and_hms_opt(8, 0, 0)
+                        .unwrap(),
+                )
+                .duration(TimeDelta::hours(4))
+                .build()])
             .build();
         assert!(!course.is_in_progress(time_provider));
 
         let course = Course::builder()
             .name("History")
             .tutors([])
-            .periods(vec![
-                CoursePeriod::builder()
+            .periods([
+                Period::builder()
                     .start(NaiveDate::MIN.and_hms_opt(8, 0, 0).unwrap())
                     .duration(TimeDelta::hours(4))
                     .build(),
-                CoursePeriod::builder()
+                Period::builder()
                     .start(
                         NaiveDate::MIN
                             .checked_add_days(Days::new(1))
@@ -125,7 +138,7 @@ mod test {
                     .filter_map(|i| NaiveDate::MIN.checked_add_days(Days::new(i * 7)))
                     .filter_map(|d| d.and_hms_opt(8, 0, 0))
                     .map(|ts| {
-                        CoursePeriod::builder()
+                        Period::builder()
                             .start(ts)
                             .duration(TimeDelta::hours(4))
                             .build()

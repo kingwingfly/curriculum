@@ -2,8 +2,12 @@ use bon::bon;
 use chrono::{NaiveDateTime, TimeDelta};
 use getset::Getters;
 
-#[derive(Debug, Getters, PartialEq, Eq, Clone, Copy, Hash)]
-pub struct CoursePeriod {
+pub type Holiday = Period;
+
+#[derive(Debug, Getters, PartialEq, Eq, Clone, Hash)]
+pub struct Period {
+    #[getset(get = "pub")]
+    name: Option<String>,
     /// Local TZ
     #[getset(get = "pub")]
     start: NaiveDateTime,
@@ -15,19 +19,14 @@ pub struct CoursePeriod {
 }
 
 #[bon]
-impl CoursePeriod {
+impl Period {
     #[builder]
-    pub fn new(start: NaiveDateTime, duration: TimeDelta) -> Self {
+    pub fn new(name: Option<&str>, start: NaiveDateTime, duration: TimeDelta) -> Self {
         Self {
+            name: name.map(|s| s.to_owned()),
             start,
             end: start + duration,
             duration,
         }
-    }
-}
-
-impl CoursePeriod {
-    pub fn contains(&self, data_time: NaiveDateTime) -> bool {
-        self.start <= data_time && data_time <= self.end
     }
 }
