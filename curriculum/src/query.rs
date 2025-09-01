@@ -1,6 +1,6 @@
 use std::{borrow::Borrow, collections::HashSet};
 
-use chrono::{NaiveDateTime, TimeDelta};
+use chrono::TimeDelta;
 use paste::paste;
 
 use crate::{course::Course, time_provider::TimeProvider};
@@ -52,15 +52,14 @@ where
         self.filter(move |c| names.contains(c.name().as_str()))
     }
 
-    fn nearest<TPB, TP>(self, time_provider: TPB) -> Vec<C>
+    fn nearest<TPB, TP>(self, time_provider: TPB, num: usize) -> Vec<C>
     where
         Self: Sized,
         TPB: Borrow<TP>,
         TP: TimeProvider,
     {
         let now = time_provider.borrow().now();
-        let mut nearest = vec![];
-        let mut nearest_time = NaiveDateTime::MAX;
+        let mut courses = vec![];
         for c in self.into_iter() {
             if let Some(p) = c
                 .borrow()
@@ -69,16 +68,18 @@ where
                 .filter(|p| p.start() >= &now)
                 .min_by_key(|p| p.start())
             {
-                if p.start() < &nearest_time {
-                    nearest.clear();
-                    nearest_time = *p.start();
-                    nearest.push(c);
-                } else if p.start() == &nearest_time {
-                    nearest.push(c);
-                }
+                courses.push((*p.start(), c));
             }
         }
-        nearest
+        courses.sort_unstable_by_key(|(start, _)| *start);
+        let mut i = 0;
+        for (start, _) in courses.iter() {
+            if i >= courses.len() || (i >= num && start > &courses[i].0) {
+                break;
+            }
+            i += 1;
+        }
+        courses.into_iter().take(i).map(|(_, c)| c).collect()
     }
 }
 
