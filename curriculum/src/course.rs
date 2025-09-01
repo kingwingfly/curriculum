@@ -1,12 +1,11 @@
 use std::{borrow::Borrow, collections::HashSet};
 
 use bon::bon;
-use chrono::{NaiveDateTime, TimeDelta};
 use getset::Getters;
 
-use crate::{time_provider::TimeProvider, tutor::Tutor};
+use crate::{period::CoursePeriod, time_provider::TimeProvider, tutor::Tutor};
 
-#[derive(Debug, Getters, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Getters)]
 pub struct Course<PS>
 where
     for<'a> &'a PS: IntoIterator<Item = &'a CoursePeriod>,
@@ -34,30 +33,6 @@ where
     }
 }
 
-#[derive(Debug, Getters, PartialEq, Eq, Clone, Copy, Hash)]
-pub struct CoursePeriod {
-    /// Local TZ
-    #[getset(get = "pub")]
-    start: NaiveDateTime,
-    /// Local TZ
-    #[getset(get = "pub")]
-    end: NaiveDateTime,
-    #[getset(get = "pub")]
-    duration: TimeDelta,
-}
-
-#[bon]
-impl CoursePeriod {
-    #[builder]
-    pub fn new(start: NaiveDateTime, duration: TimeDelta) -> Self {
-        Self {
-            start,
-            end: start + duration,
-            duration,
-        }
-    }
-}
-
 impl<PS> Course<PS>
 where
     for<'a> &'a PS: IntoIterator<Item = &'a CoursePeriod>,
@@ -68,15 +43,13 @@ where
         TP: TimeProvider,
     {
         let now = time_provider.borrow().now();
-        self.periods
-            .into_iter()
-            .any(|p| p.start <= now && now <= p.end)
+        self.periods.into_iter().any(|p| p.contains(now))
     }
 }
 
 #[cfg(test)]
 mod test {
-    use chrono::{Days, NaiveDate};
+    use chrono::{Days, NaiveDate, TimeDelta};
 
     use super::*;
     use crate::time_provider::MockTimeProvider;
