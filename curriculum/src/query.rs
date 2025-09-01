@@ -1,15 +1,19 @@
 use std::{borrow::Borrow, collections::HashSet};
 
-use crate::{course::Course, time_provider::TimeProvider};
+use crate::{
+    course::{Course, CoursePeriod},
+    time_provider::TimeProvider,
+};
 
-pub trait Query<C>: Sized
+pub trait Query<C, PS>: Sized
 where
-    C: Borrow<Course>,
+    for<'a> &'a PS: IntoIterator<Item = &'a CoursePeriod>,
+    C: Borrow<Course<PS>>,
     Self: IntoIterator<Item = C>,
 {
     fn filter<F>(self, f: F) -> impl Iterator<Item = C>
     where
-        F: Fn(&Course) -> bool,
+        F: Fn(&Course<PS>) -> bool,
     {
         Iterator::filter(self.into_iter(), move |c| f(c.borrow()))
     }
@@ -35,10 +39,11 @@ where
     }
 }
 
-impl<T, C> Query<C> for T
+impl<T, C, PS> Query<C, PS> for T
 where
-    C: Borrow<Course>,
-    T: IntoIterator<Item = C>,
+    for<'a> &'a PS: IntoIterator<Item = &'a CoursePeriod>,
+    C: Borrow<Course<PS>>,
+    Self: IntoIterator<Item = C>,
 {
 }
 

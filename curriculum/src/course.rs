@@ -7,37 +7,39 @@ use getset::Getters;
 use crate::{time_provider::TimeProvider, tutor::Tutor};
 
 #[derive(Debug, Getters, PartialEq, Eq)]
-pub struct Course {
+pub struct Course<PS>
+where
+    for<'a> &'a PS: IntoIterator<Item = &'a CoursePeriod>,
+{
     #[getset(get = "pub")]
     name: String,
     #[getset(get = "pub")]
     tutors: HashSet<Tutor>,
     #[getset(get = "pub")]
-    periods: HashSet<CoursePeriod>,
+    periods: PS,
 }
 
 #[bon]
-impl Course {
+impl<PS> Course<PS>
+where
+    for<'a> &'a PS: IntoIterator<Item = &'a CoursePeriod>,
+{
     #[builder]
-    pub fn new(
-        name: impl AsRef<str>,
-        tutors: impl Into<HashSet<Tutor>>,
-        periods: impl Into<HashSet<CoursePeriod>>,
-    ) -> Self {
+    pub fn new(name: impl AsRef<str>, tutors: impl Into<HashSet<Tutor>>, periods: PS) -> Self {
         Self {
             name: name.as_ref().to_owned(),
             tutors: tutors.into(),
-            periods: periods.into(),
+            periods,
         }
     }
 }
 
 #[derive(Debug, Getters, PartialEq, Eq, Clone, Copy, Hash)]
 pub struct CoursePeriod {
-    /// Local
+    /// Local TZ
     #[getset(get = "pub")]
     start: NaiveDateTime,
-    /// Local
+    /// Local TZ
     #[getset(get = "pub")]
     end: NaiveDateTime,
     #[getset(get = "pub")]
@@ -56,14 +58,19 @@ impl CoursePeriod {
     }
 }
 
-impl Course {
+impl<PS> Course<PS>
+where
+    for<'a> &'a PS: IntoIterator<Item = &'a CoursePeriod>,
+{
     pub fn is_in_progress<TPB, TP>(&self, time_provider: TPB) -> bool
     where
         TPB: Borrow<TP>,
         TP: TimeProvider,
     {
         let now = time_provider.borrow().now();
-        self.periods.iter().any(|p| p.start <= now && now <= p.end)
+        self.periods
+            .into_iter()
+            .any(|p| p.start <= now && now <= p.end)
     }
 }
 
@@ -133,6 +140,24 @@ mod test {
                     .duration(TimeDelta::hours(4))
                     .build(),
             ])
+            .build();
+        assert!(course.is_in_progress(time_provider));
+
+        let course = Course::builder()
+            .name("Chemistry")
+            .tutors([])
+            .periods(
+                (0..16)
+                    .filter_map(|i| NaiveDate::MIN.checked_add_days(Days::new(i * 7)))
+                    .filter_map(|d| d.and_hms_opt(8, 0, 0))
+                    .map(|ts| {
+                        CoursePeriod::builder()
+                            .start(ts)
+                            .duration(TimeDelta::hours(4))
+                            .build()
+                    })
+                    .collect::<HashSet<_>>(),
+            )
             .build();
         assert!(course.is_in_progress(time_provider));
     }
