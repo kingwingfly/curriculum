@@ -1,7 +1,7 @@
 use std::{borrow::Borrow, collections::HashSet};
 
 use bon::bon;
-use chrono::{Datelike as _, NaiveTime, TimeDelta, Weekday};
+use chrono::{NaiveDateTime, TimeDelta};
 use getset::Getters;
 
 use crate::{time_provider::TimeProvider, tutor::Tutor};
@@ -34,14 +34,12 @@ impl Course {
 
 #[derive(Debug, Getters, PartialEq, Eq, Clone, Copy, Hash)]
 pub struct CoursePeriod {
-    #[getset(get = "pub")]
-    day: Weekday,
     /// Local
     #[getset(get = "pub")]
-    start: NaiveTime,
+    start: NaiveDateTime,
     /// Local
     #[getset(get = "pub")]
-    end: NaiveTime,
+    end: NaiveDateTime,
     #[getset(get = "pub")]
     duration: TimeDelta,
 }
@@ -49,9 +47,8 @@ pub struct CoursePeriod {
 #[bon]
 impl CoursePeriod {
     #[builder]
-    pub fn new(day: Weekday, start: NaiveTime, duration: TimeDelta) -> Self {
+    pub fn new(start: NaiveDateTime, duration: TimeDelta) -> Self {
         Self {
-            day,
             start,
             end: start + duration,
             duration,
@@ -66,34 +63,26 @@ impl Course {
         TP: TimeProvider,
     {
         let now = time_provider.borrow().now();
-        let day = now.weekday();
-        let time = now.time();
-        self.periods
-            .iter()
-            .any(|p| day == p.day && p.start <= time && time <= p.end)
+        self.periods.iter().any(|p| p.start <= now && now <= p.end)
     }
 }
 
 #[cfg(test)]
 mod test {
-    use chrono::{NaiveDate, NaiveDateTime};
+    use chrono::{Days, NaiveDate};
 
     use super::*;
     use crate::time_provider::MockTimeProvider;
 
     #[test]
     fn course_tests() {
-        let time_provider = MockTimeProvider::new(NaiveDateTime::new(
-            NaiveDate::MIN, // Thursday
-            NaiveTime::from_hms_opt(9, 0, 0).unwrap(),
-        ));
+        let time_provider = MockTimeProvider::new(NaiveDate::MIN.and_hms_opt(8, 0, 0).unwrap());
 
         let course = Course::builder()
             .name("English")
             .tutors([])
             .periods([CoursePeriod::builder()
-                .day(Weekday::Thu)
-                .start(NaiveTime::from_hms_opt(8, 0, 0).unwrap())
+                .start(NaiveDate::MIN.and_hms_opt(8, 0, 0).unwrap())
                 .duration(TimeDelta::hours(4))
                 .build()])
             .build();
@@ -103,8 +92,7 @@ mod test {
             .name("Chinese")
             .tutors([])
             .periods([CoursePeriod::builder()
-                .day(Weekday::Thu)
-                .start(NaiveTime::from_hms_opt(14, 0, 0).unwrap())
+                .start(NaiveDate::MIN.and_hms_opt(14, 0, 0).unwrap())
                 .duration(TimeDelta::hours(4))
                 .build()])
             .build();
@@ -114,8 +102,13 @@ mod test {
             .name("Math")
             .tutors([])
             .periods([CoursePeriod::builder()
-                .day(Weekday::Sun)
-                .start(NaiveTime::from_hms_opt(8, 0, 0).unwrap())
+                .start(
+                    NaiveDate::MIN
+                        .checked_add_days(Days::new(1))
+                        .unwrap()
+                        .and_hms_opt(8, 0, 0)
+                        .unwrap(),
+                )
                 .duration(TimeDelta::hours(4))
                 .build()])
             .build();
@@ -126,13 +119,17 @@ mod test {
             .tutors([])
             .periods([
                 CoursePeriod::builder()
-                    .day(Weekday::Mon)
-                    .start(NaiveTime::from_hms_opt(8, 0, 0).unwrap())
+                    .start(NaiveDate::MIN.and_hms_opt(8, 0, 0).unwrap())
                     .duration(TimeDelta::hours(4))
                     .build(),
                 CoursePeriod::builder()
-                    .day(Weekday::Thu)
-                    .start(NaiveTime::from_hms_opt(8, 0, 0).unwrap())
+                    .start(
+                        NaiveDate::MIN
+                            .checked_add_days(Days::new(1))
+                            .unwrap()
+                            .and_hms_opt(8, 0, 0)
+                            .unwrap(),
+                    )
                     .duration(TimeDelta::hours(4))
                     .build(),
             ])

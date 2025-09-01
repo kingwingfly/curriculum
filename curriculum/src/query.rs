@@ -44,7 +44,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use chrono::{NaiveDate, NaiveDateTime, NaiveTime, TimeDelta, Weekday};
+    use chrono::{Days, NaiveDate, NaiveDateTime, NaiveTime, TimeDelta};
 
     use super::*;
     use crate::{course::CoursePeriod, time_provider::MockTimeProvider};
@@ -62,13 +62,17 @@ mod tests {
                 .tutors([])
                 .periods([
                     CoursePeriod::builder()
-                        .day(Weekday::Mon)
-                        .start(NaiveTime::from_hms_opt(8, 0, 0).unwrap())
+                        .start(NaiveDate::MIN.and_hms_opt(8, 0, 0).unwrap())
                         .duration(TimeDelta::hours(4))
                         .build(),
                     CoursePeriod::builder()
-                        .day(Weekday::Thu)
-                        .start(NaiveTime::from_hms_opt(8, 0, 0).unwrap())
+                        .start(
+                            NaiveDate::MIN
+                                .checked_add_days(Days::new(1))
+                                .unwrap()
+                                .and_hms_opt(8, 0, 0)
+                                .unwrap(),
+                        )
                         .duration(TimeDelta::hours(4))
                         .build(),
                 ])
@@ -78,13 +82,17 @@ mod tests {
                 .tutors([])
                 .periods([
                     CoursePeriod::builder()
-                        .day(Weekday::Mon)
-                        .start(NaiveTime::from_hms_opt(14, 0, 0).unwrap())
+                        .start(NaiveDate::MIN.and_hms_opt(14, 0, 0).unwrap())
                         .duration(TimeDelta::hours(4))
                         .build(),
                     CoursePeriod::builder()
-                        .day(Weekday::Thu)
-                        .start(NaiveTime::from_hms_opt(14, 0, 0).unwrap())
+                        .start(
+                            NaiveDate::MIN
+                                .checked_add_days(Days::new(1))
+                                .unwrap()
+                                .and_hms_opt(14, 0, 0)
+                                .unwrap(),
+                        )
                         .duration(TimeDelta::hours(4))
                         .build(),
                 ])
@@ -94,13 +102,23 @@ mod tests {
                 .tutors([])
                 .periods([
                     CoursePeriod::builder()
-                        .day(Weekday::Tue)
-                        .start(NaiveTime::from_hms_opt(8, 0, 0).unwrap())
+                        .start(
+                            NaiveDate::MIN
+                                .checked_add_days(Days::new(1))
+                                .unwrap()
+                                .and_hms_opt(8, 0, 0)
+                                .unwrap(),
+                        )
                         .duration(TimeDelta::hours(4))
                         .build(),
                     CoursePeriod::builder()
-                        .day(Weekday::Fri)
-                        .start(NaiveTime::from_hms_opt(8, 0, 0).unwrap())
+                        .start(
+                            NaiveDate::MIN
+                                .checked_add_days(Days::new(3))
+                                .unwrap()
+                                .and_hms_opt(8, 0, 0)
+                                .unwrap(),
+                        )
                         .duration(TimeDelta::hours(4))
                         .build(),
                 ])
