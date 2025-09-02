@@ -7,6 +7,7 @@ use getset::Getters;
 use crate::{period::Period, time_provider::TimeProvider, tutor::Tutor};
 
 #[derive(Debug, PartialEq, Eq, Getters)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Course {
     #[getset(get = "pub")]
     name: String,

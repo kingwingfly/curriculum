@@ -7,6 +7,7 @@ use getset::Getters;
 pub type Holiday = Period;
 
 #[derive(Debug, Getters, PartialEq, Eq, Clone, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Period {
     #[getset(get = "pub")]
     name: Option<String>,
