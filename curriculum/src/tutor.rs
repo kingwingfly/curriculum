@@ -1,7 +1,9 @@
 use bon::bon;
+use getset::Getters;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Getters)]
 pub struct Tutor {
+    #[getset(get = "pub")]
     name: String,
 }
 

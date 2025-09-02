@@ -1,3 +1,5 @@
+use std::fmt;
+
 use bon::bon;
 use chrono::{NaiveDateTime, TimeDelta};
 use getset::Getters;
@@ -16,6 +18,12 @@ pub struct Period {
     end: NaiveDateTime,
     #[getset(get = "pub")]
     duration: TimeDelta,
+}
+
+impl fmt::Display for Period {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{} - {}", self.start, self.end)
+    }
 }
 
 #[bon]

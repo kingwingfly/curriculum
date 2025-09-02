@@ -1,4 +1,4 @@
-use std::{borrow::Borrow, collections::HashSet};
+use std::{borrow::Borrow, collections::HashSet, fmt};
 
 use bon::bon;
 use chrono::TimeDelta;
@@ -16,6 +16,25 @@ pub struct Course {
     tutors: HashSet<Tutor>,
     #[getset(get = "pub")]
     periods: HashSet<Period>,
+}
+
+impl fmt::Display for Course {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{} ({}) <{}>",
+            self.name,
+            self.place.as_deref().unwrap_or("Unknown"),
+            self.tutors.iter().fold(String::new(), |mut acc, tutor| {
+                if !acc.is_empty() {
+                    acc.push(' ');
+                }
+                acc.push_str(tutor.name());
+                acc
+            })
+        )?;
+        Ok(())
+    }
 }
 
 #[bon]
@@ -54,6 +73,17 @@ impl Course {
         self.periods
             .iter()
             .any(|p| &start <= p.start() && p.start() <= &end)
+    }
+
+    pub fn nearest_period<TP: TimeProvider>(
+        &self,
+        time_provider: impl Borrow<TP>,
+    ) -> Option<&Period> {
+        let now = time_provider.borrow().now();
+        self.periods
+            .iter()
+            .filter(|p| p.start() > &now)
+            .min_by_key(|p| p.start())
     }
 }
 

@@ -54,23 +54,16 @@ where
     where
         TP: TimeProvider,
     {
-        let now = time_provider.borrow().now();
         let mut courses = vec![];
         for c in self.into_iter() {
-            if let Some(p) = c
-                .borrow()
-                .periods()
-                .iter()
-                .filter(|p| p.start() >= &now)
-                .min_by_key(|p| p.start())
-            {
+            if let Some(p) = c.borrow().nearest_period::<TP>(time_provider.borrow()) {
                 courses.push((*p.start(), c));
             }
         }
         courses.sort_unstable_by_key(|(start, _)| *start);
         let mut i = 0;
         for (start, _) in courses.iter() {
-            if i >= courses.len() || (i >= num && start > &courses[i].0) {
+            if i >= courses.len() || (i >= num && (i <= 1 || start > &courses[i - 1].0)) {
                 break;
             }
             i += 1;
