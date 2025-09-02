@@ -29,4 +29,8 @@ impl Period {
             duration,
         }
     }
+
+    pub fn is_overlap(&self, other: &Self) -> bool {
+        !(self.end <= other.start || self.start >= other.end)
+    }
 }

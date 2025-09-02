@@ -1,11 +1,11 @@
 use std::{borrow::Borrow, collections::HashSet};
 
 use chrono::TimeDelta;
-use paste::paste;
+use variadics_please::all_tuples_enumerated;
 
 use crate::{course::Course, time_provider::TimeProvider};
 
-pub trait Query<C, M>
+pub trait Query<C, M>: Sized
 where
     C: Borrow<Course>,
 {
@@ -13,35 +13,33 @@ where
 
     fn filter<F>(self, f: F) -> impl Iterator<Item = C>
     where
-        Self: Sized,
         F: Fn(&Course) -> bool,
     {
         Iterator::filter(self.into_iter(), move |c| f(c.borrow()))
     }
 
     /// Filters the courses that are currently in progress.
-    fn in_progress<TPB, TP>(self, time_provider: TPB) -> impl Iterator<Item = C>
+    fn in_progress<TP>(self, time_provider: impl Borrow<TP>) -> impl Iterator<Item = C>
     where
-        Self: Sized,
-        TPB: Borrow<TP>,
         TP: TimeProvider,
     {
-        self.filter(move |c| c.is_in_progress::<&TP, TP>(time_provider.borrow()))
+        self.filter(move |c| c.is_in_progress::<TP>(time_provider.borrow()))
     }
 
     /// Filters the courses that are upcoming in less than the specified time delta.
-    fn upcoming<TPB, TP>(self, time_provider: TPB, delta: TimeDelta) -> impl Iterator<Item = C>
+    fn upcoming<TP>(
+        self,
+        time_provider: impl Borrow<TP>,
+        delta: TimeDelta,
+    ) -> impl Iterator<Item = C>
     where
-        Self: Sized,
-        TPB: Borrow<TP>,
         TP: TimeProvider,
     {
-        self.filter(move |c| c.is_upcoming::<&TP, TP>(time_provider.borrow(), delta))
+        self.filter(move |c| c.is_upcoming::<TP>(time_provider.borrow(), delta))
     }
 
     fn filter_by_name<NS, N>(self, names: NS) -> impl Iterator<Item = C>
     where
-        Self: Sized,
         NS: IntoIterator<Item = N>,
         N: AsRef<str>,
     {
@@ -52,10 +50,8 @@ where
         self.filter(move |c| names.contains(c.name().as_str()))
     }
 
-    fn nearest<TPB, TP>(self, time_provider: TPB, num: usize) -> Vec<C>
+    fn nearest<TP>(self, time_provider: impl Borrow<TP>, num: usize) -> Vec<C>
     where
-        Self: Sized,
-        TPB: Borrow<TP>,
         TP: TimeProvider,
     {
         let now = time_provider.borrow().now();
@@ -93,28 +89,21 @@ where
     }
 }
 
-macro_rules! impl_query {
-    ($($i: literal),+ $(,)?) => {
-        paste! {
-            impl<$([<T $i>]),+, C> Query<C, ((),)> for ($([<T $i>]),+,)
-            where
-                $([<T $i>]: IntoIterator<Item = C>),+,
-                C: Borrow<Course>,
-            {
-                fn into_iter(self) -> impl Iterator<Item = C> {
-                    IntoIterator::into_iter([])$(.chain(self.$i))*
-                }
+macro impl_query {
+    ($(($i: tt, $T: ident)),+ $(,)?) => {
+        impl<$($T),+, C> Query<C, ((),)> for ($($T),+,)
+        where
+            $($T: IntoIterator<Item = C>),+,
+            C: Borrow<Course>,
+        {
+            fn into_iter(self) -> impl Iterator<Item = C> {
+                IntoIterator::into_iter([])$(.chain(self.$i))*
             }
         }
-    };
+    }
 }
 
-impl_query!(0,);
-impl_query!(0, 1,);
-impl_query!(0, 1, 2);
-impl_query!(0, 1, 2, 3);
-impl_query!(0, 1, 2, 3, 4);
-impl_query!(0, 1, 2, 3, 4, 5);
+all_tuples_enumerated!(impl_query, 1, 9, T);
 
 #[cfg(test)]
 mod tests {

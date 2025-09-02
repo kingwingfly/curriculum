@@ -37,22 +37,18 @@ impl Course {
 }
 
 impl Course {
-    pub fn is_in_progress<TPB, TP>(&self, time_provider: TPB) -> bool
-    where
-        TPB: Borrow<TP>,
-        TP: TimeProvider,
-    {
+    pub fn is_in_progress<TP: TimeProvider>(&self, time_provider: impl Borrow<TP>) -> bool {
         let now = time_provider.borrow().now();
         self.periods
             .iter()
             .any(|p| p.start() <= &now && &now <= p.end())
     }
 
-    pub fn is_upcoming<TPB, TP>(&self, time_provider: TPB, delta: TimeDelta) -> bool
-    where
-        TPB: Borrow<TP>,
-        TP: TimeProvider,
-    {
+    pub fn is_upcoming<TP: TimeProvider>(
+        &self,
+        time_provider: impl Borrow<TP>,
+        delta: TimeDelta,
+    ) -> bool {
         let start = time_provider.borrow().now();
         let end = start + delta;
         self.periods

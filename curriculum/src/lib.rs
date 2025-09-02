@@ -1,3 +1,5 @@
+#![feature(decl_macro)]
+
 pub mod course;
 pub mod curriculum;
 pub mod error;
