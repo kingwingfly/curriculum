@@ -24,8 +24,8 @@ fn main() {
     println!("Nearest {} courses:", cli.nearest);
     for course in courses
         .iter()
-        .nearest(DefaultTimeProvider, cli.nearest)
         .filter_by_name(&chosen)
+        .nearest(DefaultTimeProvider, cli.nearest)
     {
         println!(
             "{}: {}",
@@ -36,8 +36,8 @@ fn main() {
 
     println!("Upcoming courses in {} hours:", cli.in_hours);
     for course in courses
-        .upcoming(DefaultTimeProvider, TimeDelta::hours(cli.in_hours as i64))
         .filter_by_name(&chosen)
+        .upcoming(DefaultTimeProvider, TimeDelta::hours(cli.in_hours as i64))
     {
         println!(
             "{}: {}",
