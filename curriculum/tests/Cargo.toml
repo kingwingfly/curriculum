@@ -1,9 +1,0 @@
-[package]
-name = "curriculum_tests"
-
-[dependencies]
-curriculum = { path = "../" }
-
-[[test]]
-name = "hard_coded"
-path = "hard_coded.rs"

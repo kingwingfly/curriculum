@@ -1,10 +1,10 @@
+#[path = "../common/common.rs"]
 mod common;
 
 use common::{chosen, courses};
 use curriculum::{DefaultTimeProvider, Query as _, TimeDelta};
 
-#[test]
-fn hard_coded() {
+fn main() {
     let courses = courses();
     let chosen = chosen();
 

@@ -86,11 +86,11 @@ macro impl_query {
     ($(($i: tt, $T: ident)),+ $(,)?) => {
         impl<$($T),+, C> Query<C, ((),)> for ($($T),+,)
         where
-            $($T: IntoIterator<Item = C>),+,
+            $($T: Query<C, ()>,)+
             C: Borrow<Course>,
         {
             fn into_iter(self) -> impl Iterator<Item = C> {
-                IntoIterator::into_iter([])$(.chain(self.$i))*
+                IntoIterator::into_iter([])$(.chain(self.$i.into_iter()))*
             }
         }
     }
