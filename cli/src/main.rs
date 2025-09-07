@@ -12,7 +12,7 @@ struct Cli {
     #[arg(short, long, default_value_t = 5)]
     nearest: usize,
     /// nearest courses in hours
-    #[arg(short, long, default_value_t = 24)]
+    #[arg(short, long, default_value_t = 36)]
     in_hours: usize,
 }
 
